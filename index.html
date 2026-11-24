@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#283048">
+  <title>የማይደርቅ አበባ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Ethiopic:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg: #283048; --ivory: #F3E9DC; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      background: var(--bg);
+      color: var(--ivory);
+      min-height: 100vh;
+      min-height: 100svh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      padding: 1.25rem 1rem 2.5rem;
+    }
+    #bouquet {
+      margin: 0;
+      font-family: "DejaVu Sans Mono", Menlo, Consolas, "Courier New", monospace;
+      font-size: min(calc((100vw - 2rem) / 38.4), 14px);
+      line-height: 1.2;
+      white-space: pre;
+    }
+    .amharic {
+      margin: 0;
+      text-align: center;
+      font-family: "Noto Serif Ethiopic", "Abyssinica SIL", Nyala, serif;
+      font-size: clamp(1.6rem, 5vw, 2.4rem);
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <pre id="bouquet" role="img" aria-label="A colorful bouquet of flowers drawn in text characters, gently rotating"></pre>
+  <p class="amharic" lang="am">የማይደርቅ አበባ</p>
+  <script>
+(() => {
+  const COLS = 64, ROWS = 60;
+  const out = document.getElementById('bouquet');
+  const GREEN = '#8FE04F', LEAFMID = '#C9F28C', STEM = '#7FD65A';
+  const ANCHOR = { x: 32, y: 38 };
+
+  const flowers = [
+    { x: 14, y: 27, R: 13, m: 4, base: 0.35, p: 1.0, rot: 0.2, spin: 0.45,  ph: 0.5, pal: ['#FFB3D1', '#FFD23F', '#F28C28'], center: '#FFFFFF' },
+    { x: 18, y: 10, R: 12, m: 3, base: 0.30, p: 1.0, rot: 0.6, spin: -0.5,  ph: 1.4, pal: ['#FFFFFF', '#F8B4E0', '#C27CF5'], center: '#FFB020' },
+    { x: 55, y: 29, R: 8,  m: 4, base: 0.40, p: 1.0, rot: 0.1, spin: -0.6,  ph: 2.2, pal: ['#FFD1E6', '#FF7FB8', '#E0489A'], center: '#FFE066' },
+    { x: 55, y: 19, R: 10, m: 4, base: 0.35, p: 1.0, rot: 0.9, spin: 0.55,  ph: 3.0, pal: ['#FFF06A', '#FFD92E', '#F2B01E'], center: '#F28C1E' },
+    { x: 33, y: 10, R: 10, m: 5, base: 0.45, p: 1.0, rot: 0.3, spin: 0.4,   ph: 0.9, pal: ['#FFFFFF', '#E9ECF8', '#C9D1F0'], center: '#FFC83A' }
+  ];
+  const tulip = { x: 46, y: 11, w: 6, h: 7, ph: 1.8 };
+
+  const leaves = [
+    { x: 24, y: 36, a: 2.7,  L: 15, w: 3.0, ph: 0.2 },
+    { x: 24, y: 35, a: -2.9, L: 18, w: 3.2, ph: 1.0 },
+    { x: 25, y: 35, a: -2.4, L: 18, w: 3.0, ph: 2.0 },
+    { x: 40, y: 36, a: 0.45, L: 15, w: 3.0, ph: 0.6 },
+    { x: 40, y: 35, a: -0.2, L: 18, w: 3.2, ph: 1.5 },
+    { x: 39, y: 35, a: -0.7, L: 18, w: 3.0, ph: 2.5 },
+    { x: 30, y: 35, a: -1.85, L: 12, w: 2.4, ph: 0.8 },
+    { x: 35, y: 35, a: -1.3,  L: 12, w: 2.4, ph: 1.9 }
+  ];
+  const sparks = [[6,8],[12,19],[61,9],[59,40],[7,44],[26,3],[40,2],[3,34],[62,24],[21,48],[44,47],[36,29],[10,52],[55,53],[29,24]];
+
+  const chars = new Array(COLS * ROWS);
+  const cols = new Array(COLS * ROWS);
+
+  function put(x, y, c, col) {
+    x = Math.round(x); y = Math.round(y);
+    if (x < 0 || y < 0 || x >= COLS || y >= ROWS) return;
+    chars[y * COLS + x] = c;
+    cols[y * COLS + x] = col;
+  }
+  function slashFor(dx, dyv) {
+    const a = Math.atan2(dyv, dx);
+    if (Math.abs(Math.cos(a)) < 0.38) return '|';
+    return (dx * dyv > 0) ? '\\' : '/';
+  }
+
+  function drawLeaf(l, t) {
+    const a = l.a + Math.sin(t * 0.7 + l.ph) * 0.05;
+    const ca = Math.cos(a), sa = Math.sin(a);
+    for (let s = 0; s <= 1; s += 1 / (l.L * 1.6)) {
+      const wv = l.w * Math.sin(Math.PI * Math.pow(s, 0.8));
+      for (let v = -wv; v <= wv; v += 0.5) {
+        const px = l.x + ca * s * l.L - sa * v;
+        const py = l.y + (sa * s * l.L + ca * v) / 2;
+        const mid = Math.abs(v) < 0.3;
+        put(px, py, mid ? '-' : ((Math.round(px) + Math.round(py)) % 2 ? 'x' : '%'), mid ? LEAFMID : GREEN);
+      }
+    }
+  }
+
+  function drawStem(tx, ty, t, ph) {
+    const sway = Math.sin(t * 0.8 + ph) * 1.0;
+    const cx = ANCHOR.x + (tx - ANCHOR.x) * 0.2 + sway;
+    const cy = ANCHOR.y + (ty - ANCHOR.y) * 0.55;
+    for (let s = 0; s <= 1; s += 1 / 80) {
+      const u = 1 - s;
+      const px = u * u * ANCHOR.x + 2 * u * s * cx + s * s * tx;
+      const py = u * u * ANCHOR.y + 2 * u * s * cy + s * s * ty;
+      const dx = 2 * u * (cx - ANCHOR.x) + 2 * s * (tx - cx);
+      const dy = 2 * u * (cy - ANCHOR.y) + 2 * s * (ty - cy);
+      put(px, py, slashFor(dx, dy * 2), STEM);
+    }
+  }
+
+  function drawCone() {
+    const y0 = 34, y1 = 47, cx = 32;
+    for (let y = y0; y <= y1; y++) {
+      const half = 19 * (1 - (y - y0) / (y1 - y0)) + 1.5;
+      for (let x = Math.ceil(cx - half); x <= Math.floor(cx + half); x++) {
+        const edge = Math.abs(x - cx) > half - 1.4;
+        if (edge) { put(x, y, y % 2 ? '=' : '-', '#EEF0F7'); continue; }
+        if (y % 2 === 0) { if (x % 6 !== 0) put(x, y, '-', '#DDE1EC'); }
+        else if ((x + y) % 4 === 0) put(x, y, (x % 8 === 0) ? ':' : '|', '#8E97B0');
+      }
+    }
+  }
+
+  function drawRibbon() {
+    const rows = [[48, 7], [49, 6], [50, 5], [51, 4]];
+    rows.forEach(([y, h], i) => {
+      for (let x = 32 - h; x <= 32 + h; x++) {
+        put(x, y, (x + y) % 3 ? 'O' : '0', i % 2 ? '#FF6FAE' : '#FF8FC0');
+      }
+    });
+    put(30, 49, '@', '#FFD1E6'); put(34, 49, '@', '#FFD1E6'); put(32, 49, '8', '#FFFFFF');
+    put(30, 52, '/', '#FF8FC0'); put(34, 52, '\\', '#FF8FC0');
+    put(29, 53, '/', '#FF8FC0'); put(35, 53, '\\', '#FF8FC0');
+  }
+
+  function drawLowerStems(t) {
+    for (let y = 52; y < ROWS; y++) {
+      const w = Math.sin(t * 0.8 + y * 0.2) * 0.4;
+      put(31 + w, y, '|', STEM); put(32, y, '|', STEM); put(33 - w, y, '|', STEM);
+      if (y === 55) { put(29, y, '%', GREEN); put(30, y, 'x', GREEN); put(34, y, 'x', GREEN); put(35, y, '%', GREEN); }
+      if (y === 57) { put(28, y, 'x', GREEN); put(29, y, '%', GREEN); put(35, y, '%', GREEN); put(36, y, 'x', GREEN); }
+    }
+  }
+
+  function drawFlower(f, t) {
+    const cx = f.x + Math.sin(t * 0.8 + f.ph) * 0.9;
+    const cy = f.y + Math.cos(t * 0.6 + f.ph) * 0.4;
+    const R = f.R * (0.96 + 0.04 * Math.sin(t * 1.2 + f.ph));
+    const rot = f.rot + t * f.spin;
+    const x0 = Math.floor(cx - R) - 1, x1 = Math.ceil(cx + R) + 1;
+    const y0 = Math.floor(cy - R / 2) - 1, y1 = Math.ceil(cy + R / 2) + 1;
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0; x <= x1; x++) {
+        const dx = x - cx, dy = (y - cy) * 2;
+        const r = Math.hypot(dx, dy);
+        const th = Math.atan2(dy, dx);
+        const pr = R * (f.base + (1 - f.base) * Math.pow(Math.abs(Math.cos(f.m * (th - rot))), f.p));
+        if (r > pr) continue;
+        if (r < 2.6) { put(x, y, r < 1.2 ? '@' : '0', f.center); continue; }
+        const k = r / pr;
+        const c = k > 0.8 ? 'o' : k > 0.6 ? 'O' : k > 0.4 ? '0' : k > 0.25 ? '@' : 'W';
+        put(x, y, c, k > 0.7 ? f.pal[0] : k > 0.4 ? f.pal[1] : f.pal[2]);
+      }
+    }
+  }
+
+  function drawTulip(f, t) {
+    const sw = Math.sin(t * 0.8 + f.ph) * 0.9;
+    const top = f.y - f.h, span = f.h * 2;
+    for (let y = top; y <= f.y + f.h; y++) {
+      const s = (y - top) / span;
+      const hw = f.w * Math.pow(Math.sin(Math.PI * (0.18 + 0.8 * s)), 0.6);
+      const cx = f.x + sw * (1 - s);
+      for (let x = Math.round(cx - hw); x <= Math.round(cx + hw); x++) {
+        if (s < 0.3 && Math.abs(x - cx) < (0.3 - s) * f.w * 0.9) continue;
+        put(x, y, (y % 2) ? '=' : '#', s < 0.5 ? '#FF4A24' : '#E02A10');
+      }
+    }
+  }
+
+  function drawSparks(t) {
+    sparks.forEach(([x, y], i) => {
+      const v = Math.sin(t * 1.5 + i * 1.7);
+      const c = v > 0.6 ? '*' : v > 0 ? '+' : v > -0.5 ? '.' : null;
+      if (c) put(x, y, c, '#FFFFFF');
+    });
+  }
+
+  function render(t) {
+    chars.fill(undefined);
+    drawSparks(t);
+    leaves.forEach(l => drawLeaf(l, t));
+    flowers.forEach(f => drawStem(f.x, f.y, t, f.ph));
+    drawStem(tulip.x, tulip.y + tulip.h, t, tulip.ph);
+    drawCone();
+    drawRibbon();
+    drawLowerStems(t);
+    flowers.forEach(f => drawFlower(f, t));
+    drawTulip(tulip, t);
+    let html = '';
+    for (let y = 0; y < ROWS; y++) {
+      let cur = null;
+      for (let x = 0; x < COLS; x++) {
+        const c = chars[y * COLS + x], col = cols[y * COLS + x];
+        if (!c) {
+          if (cur) { html += '</span>'; cur = null; }
+          html += ' ';
+          continue;
+        }
+        if (col !== cur) {
+          if (cur) html += '</span>';
+          html += '<span style="color:' + col + '">';
+          cur = col;
+        }
+        html += c;
+      }
+      if (cur) html += '</span>';
+      html += '\n';
+    }
+    out.innerHTML = html;
+  }
+
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let last = 0;
+  function loop(ms) {
+    if (ms - last > 45) { last = ms; render(ms / 1000); }
+    requestAnimationFrame(loop);
+  }
+  render(0);
+  if (!still) requestAnimationFrame(loop);
+})();
+  </script>
+</body>
+</html>
